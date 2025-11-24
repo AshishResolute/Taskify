@@ -1,13 +1,15 @@
 import express from 'express'
 import authentication from './auth.js'
+import user from './users.js';
+import adminAccess from './admin.js';
 const app = express();
 const PORT = 3000;
  
 app.use(express.json());
 
 app.use('/auth',authentication);
-
-
+app.use('/users',user);
+app.use('/admin',adminAccess);
 
 
 

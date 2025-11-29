@@ -10,7 +10,7 @@ router.put('/update/userRole',verifyToken,verifyManager,async(req,res)=>{
     try{
         let {user_id,user_name} = req.body;
         if(!user_id||!user_name) return res.status(400).json({Message:`User Details Like Id and Name required`});
-        await db.query(`update users set user_role=? where user_id=? and user_name=?`,["admin",user_id,user_name]);
+        await db.query(`update users set user_role=?,team_id = (select team_id from teams where team_admin=?) where user_id=? and user_name=?`,["admin",user_id,user_id,user_name]);
         res.status(200).json({Message:`User Role Updated to "Admin"`});
     }
     catch(err)

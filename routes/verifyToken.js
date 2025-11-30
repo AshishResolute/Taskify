@@ -9,8 +9,9 @@ let verifyToken = (req, res, next) => {
    jwt.verify(token, process.env.JWT_SECRET, (err, decode) => {
       if (err) return res.status(401).json({ Error: err.message });
       req.user = decode;
+         next();
    })
-   next();
+
 }
 
 export default verifyToken; 

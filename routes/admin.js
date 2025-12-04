@@ -45,20 +45,42 @@ router.get('/getTeamMembers/:teamId', verifyToken, verifyAdmin, async (req, res)
     }
 })
 
+       // Made few changes in the database so this route is not valid now 
+// router.patch('/assignTask/:user/:user_id/:team_id', verifyToken, verifyAdmin, async (req, res) => {
+//     try {
+//         let user_name = req.params.user;
+//         let teamUser_id = req.params.user_id;
+//         let team_id = req.params.team_id;
+//         if (!user_name.length || team_id === null || team_id === undefined) return res.status(400).json({ Message: `Please Provide Complete user Details` });
+//         let [checkUser] = await db.query(`select user_name from users where user_id=? and team_id=?`, [teamUser_id, team_id]);
+//         if (!checkUser.length) return res.status(400).json({ Message: `User not found in this team` });
+//         let { taskForUser } = req.body;
+//         if (!taskForUser.length) return res.status(400).json({ Message: `Task for user not Provided` });
+//       let [result] =   await db.query(`update users set task = ? where user_id=? and user_name=? and team_id=?`, [taskForUser, teamUser_id, user_name, team_id]);
+//       if(result.affectedRows === 0) return res.status(400).json({Message:`Failed to assign Task`});
+//         res.status(200).json({ Message: `Task ${taskForUser} assigned to ${user_name} with Team_id ${team_id}` });
+//     }
+//     catch (err) {
+//         res.status(500).json({ Message: `DataBase Error`, Details: err.message });
+//     }
+// })
 
-router.patch('/assignTask/:user/:user_id/:team_id', verifyToken, verifyAdmin, async (req, res) => {
-    try {
-        let user_name = req.params.user;
-        let teamUser_id = req.params.user_id;
-        let team_id = req.params.team_id;
-        if (!user_name.length || team_id === null || team_id === undefined) return res.status(400).json({ Message: `Please Provide Complete user Details` });
-        let [checkUser] = await db.query(`select user_name from users where user_id=? and team_id=?`, [teamUser_id, team_id]);
-        if (!checkUser.length) return res.status(400).json({ Message: `User not found in this team` });
-        let { taskForUser } = req.body;
-        if (!taskForUser.length) return res.status(400).json({ Message: `Task for user not Provided` });
-      let [result] =   await db.query(`update users set task = ? where user_id=? and user_name=? and team_id=?`, [taskForUser, teamUser_id, user_name, team_id]);
-      if(result.affectedRows === 0) return res.status(400).json({Message:`Failed to assign Task`});
-        res.status(200).json({ Message: `Task ${taskForUser} assigned to ${user_name} with Team_id ${team_id}` });
+
+router.put('/assignTask/:user_id/:team_id',verifyToken,verifyAdmin,async(req,res)=>{
+    try{
+        let admin_id = req.user.id;
+        let {user_id,team_id} = (req.params);
+        if(!user_id||!team_id) return res.status(400).json({Message:`Missing Details`});
+        let [checkForUser] = await db.query(`select user_id from users where user_id =? and team_id=?`,[user_id,team_id]);
+        if(!checkForUser.length) return res.status(400).json({Message:`User with user_id ${user_id} and Team-id ${team_id} Not Found`});
+        let {title,description,taskDeadline} = req.body;
+        if(!title||!description) return res.status(400).json({Message:`Task Title or Description missing`});
+        let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`,[title,description,user_id,admin_id,team_id,taskDeadline]);
+        if(result.affectedRows===0) return res.status(400).json({Message:`Task not Assigned`});
+        res.status(200).json({
+            Message:`Task ${title} assigned to User with user_id ${user_id}`,
+            task_id:result.insertId
+        });
     }
     catch (err) {
         res.status(500).json({ Message: `DataBase Error`, Details: err.message });

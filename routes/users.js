@@ -78,4 +78,35 @@ router.put('/leaveTeam/:team_id', verifyToken, async (req, res) => {
         connection.release();
     }
 })
+
+
+router.get('/getTasks',verifyToken,async(req,res)=>{
+    try{
+           let user_id = req.user.id;
+           let [result] = await db.query(`select title from tasks where assigned_to=?`,[user_id]);
+           if(!result.length) return res.status(400).json({Message:`No Tasks Found for user with id ${user_id}`});
+           res.status(200).json({Tasks:result});
+    } 
+    catch (err) {
+        res.status(500).json({ Message: `DataBase Error`, Details: err.message });
+    }
+})
+
+router.patch('/updateTaskStatus/:task_id',verifyToken,async(req,res)=>{
+    try{
+        let user_id = req.user.id;
+        let {task_id} = req.params;
+        if(!task_id||task_id.trim()==='') return res.status(400).json({Message:`Missing Task_id of an Task`});
+        let {status} = req.body;
+        let [result] = await db.query(`update tasks set status = ? where assigned_to=? and task_id=?`,[status,user_id,task_id]);
+        if(result.affectedRows===0) return res.status(400).json({Message:`Task Status not Updated`});
+        res.status(200).json({Message:`Task Status updated for Task_id ${task_id} of user with user_id ${user_id}`});
+    }
+    catch(err)
+    {
+        res.status(500).json({Message:`DataBase Error`,
+            Details:err.message
+        })
+    }
+})
 export default router;

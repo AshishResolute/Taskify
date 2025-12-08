@@ -109,4 +109,21 @@ router.patch('/updateTaskStatus/:task_id',verifyToken,async(req,res)=>{
         })
     }
 })
+
+router.get('/userTaskStatusSummary',verifyToken,async(req,res)=>{
+          try{
+               let user_id = req.user.id;
+               let [summary] = await db.query(`select status from tasks where assigned_to = ?`,[user_id]);
+               if(!summary.length) return res.status(400).json({Message:`No Tasks Found for user`});
+               let map = new Map();
+               summary.forEach((data)=>{
+                map.set(data.status,(map.get(data.status)||0)+1)
+               })
+               let result = Object.fromEntries(map);
+               res.status(200).json({statusSummary:result})
+          }
+          catch (err) {
+        res.status(500).json({ Message: `DataBase Error`, Details: err.message });
+    }
+})
 export default router;

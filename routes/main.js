@@ -3,6 +3,7 @@ import authentication from './auth.js'
 import user from './users.js';
 import adminAccess from './admin.js';
 import mangerAccess from './manager.js';
+import teams from './team.js';
 const app = express();
 const PORT = 3000;
  
@@ -12,7 +13,7 @@ app.use('/auth',authentication);
 app.use('/users',user);
 app.use('/admin',adminAccess);
 app.use('/manager',mangerAccess);
-
+app.use('/teams',teams);
 
 
 

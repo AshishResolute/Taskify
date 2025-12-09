@@ -73,9 +73,9 @@ router.put('/assignTask/:user_id/:team_id',verifyToken,verifyAdmin,async(req,res
         if(!user_id||!team_id) return res.status(400).json({Message:`Missing Details`});
         let [checkForUser] = await db.query(`select user_id from users where user_id =? and team_id=?`,[user_id,team_id]);
         if(!checkForUser.length) return res.status(400).json({Message:`User with user_id ${user_id} and Team-id ${team_id} Not Found`});
-        let {title,description,taskDeadline} = req.body;
+        let {title,description,taskDeadline,assigned_by} = req.body;
         if(!title||!description) return res.status(400).json({Message:`Task Title or Description missing`});
-        let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`,[title,description,user_id,admin_id,team_id,taskDeadline]);
+        let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`,[title,description,user_id,assigned_by,team_id,taskDeadline]);
         if(result.affectedRows===0) return res.status(400).json({Message:`Task not Assigned`});
         res.status(200).json({
             Message:`Task ${title} assigned to User with user_id ${user_id}`,

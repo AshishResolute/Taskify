@@ -13,7 +13,9 @@ router.post('/login', async (req, res) => {
         const user = userData[0];
         let match = await bcrypt.compare(password, user[0].password);
         if (!match) return res.status(400).json({ Message: 'Passwords Dont Match' });
-        let token = jwt.sign({ id: user[0].user_id, name: user[0].name, role: user[0].user_role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        let token = jwt.sign({ id: user[0].user_id, name: user[0].name, role: user[0].user_role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+        let refreshToken = jwt.sign({id:userData[0].user_id,name:userData[0].name,role:userData[0].user_role},process.env.REFRESH_TOKEN_SECRET,{expiresIn:"7d"});
+        res.cookie('refreshToken',refreshToken,{httpOnly:true,secure:true});
         res.status(200).json({ Message: `Welcome Back ${user[0].user_name}`, token })
     }
     catch (err) {
@@ -34,5 +36,27 @@ router.post('/sign-up', async (req, res) => {
         res.status(500).json({ Message: `DataBase Error`, Details: err.message });
     }
 })
+
+router.post('/refreshToken',async(req,res)=>{
+    try{
+        let token = req.cookies.refreshToken;
+        if(!token) return res.sendStatus(401);
+        let payload = jwt.verify(token,process.env.REFRESH_TOKEN_SECRET);
+        const newAccessToken = jwt.sign({id:payload.id,name:payload.name,role:payload.role},process.env.JWT_SECRET,{expiresIn:'15m'});
+        res.json({token:newAccessToken})
+     }
+     catch(err)
+     {
+        res.sendStatus(403);
+     }
+})
+
+
+router.post('/logout',(req,res)=>{
+        let token = req.cookies.refreshToken;
+        res.clearCookie('refreshToken');
+        res.sendStatus(204)
+})
+
 
 export default router;

@@ -2,6 +2,8 @@ import express from 'express';
 import verifyToken from './verifyToken.js';
 import verifyAdmin from './adminMiddleWear.js';
 import db from './db.js';
+import nodemailer from 'nodemailer';
+import transporter from './mailer.js';
 const router = express.Router();
 
 
@@ -45,7 +47,7 @@ router.get('/getTeamMembers/:teamId', verifyToken, verifyAdmin, async (req, res)
     }
 })
 
-       // Made few changes in the database so this route is not valid now 
+// Made few changes in the database so this route is not valid now 
 // router.patch('/assignTask/:user/:user_id/:team_id', verifyToken, verifyAdmin, async (req, res) => {
 //     try {
 //         let user_name = req.params.user;
@@ -66,20 +68,39 @@ router.get('/getTeamMembers/:teamId', verifyToken, verifyAdmin, async (req, res)
 // })
 
 
-router.put('/assignTask/:user_id/:team_id',verifyToken,verifyAdmin,async(req,res)=>{
-    try{
+router.put('/assignTask/:user_id/:team_id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
         let admin_id = req.user.id;
-        let {user_id,team_id} = (req.params);
-        if(!user_id||!team_id) return res.status(400).json({Message:`Missing Details`});
-        let [checkForUser] = await db.query(`select user_id from users where user_id =? and team_id=?`,[user_id,team_id]);
-        if(!checkForUser.length) return res.status(400).json({Message:`User with user_id ${user_id} and Team-id ${team_id} Not Found`});
-        let {title,description,taskDeadline,assigned_by} = req.body;
-        if(!title||!description) return res.status(400).json({Message:`Task Title or Description missing`});
-        let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`,[title,description,user_id,assigned_by,team_id,taskDeadline]);
-        if(result.affectedRows===0) return res.status(400).json({Message:`Task not Assigned`});
+        let { user_id, team_id } = (req.params);
+        if (!user_id || !team_id) return res.status(400).json({ Message: `Missing Details` });
+        let [checkForUser] = await db.query(`select user_id from users where user_id =? and team_id=?`, [user_id, team_id]);
+        if (!checkForUser.length) return res.status(400).json({ Message: `User with user_id ${user_id} and Team-id ${team_id} Not Found` });
+        let { title, description, taskDeadline } = req.body;
+        if (!title || !description) return res.status(400).json({ Message: `Task Title or Description missing` });
+        let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`, [title, description, user_id, admin_id, team_id, taskDeadline]);
+        if (result.affectedRows === 0) return res.status(400).json({ Message: `Task not Assigned` });
+        let [userDetails] = await db.query(`select email,user_name from users where user_id=?`, [user_id]);
+        const mailDeatails = {
+            from: "ashish@taskifyPro.dev",
+            to: userDetails[0].email,
+            subject: `New Task Assigned ${title}`,
+            html: `
+               <h3> Hi,${userDetails[0].user_name},</h3>
+               <p> You've been assigned a new Task <strong>${title}</strong></p>
+               <p> Task Decription: <strong>${description}</strong></p>
+               <p> Deadline: ${taskDeadline}</p>
+               <p> --> TaskifyPro <-- </p>
+            `
+        }
+        transporter.sendMail(mailDeatails, (err, info) => {
+            if (err) console.log(`Error:${err.message}`)
+            else {
+                console.log(`Mail Sent: ${info.response}`)
+            }
+        })
         res.status(200).json({
-            Message:`Task ${title} assigned to User with user_id ${user_id}`,
-            task_id:result.insertId
+            Message: `Task ${title} assigned to User with user_id ${user_id}`,
+            // task_id: result.insertId
         });
     }
     catch (err) {

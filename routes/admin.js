@@ -4,6 +4,7 @@ import verifyAdmin from './adminMiddleWear.js';
 import db from './db.js';
 import nodemailer from 'nodemailer';
 import transporter from './mailer.js';
+import emailQueue from './emailQueue.js';
 const router = express.Router();
 
 
@@ -80,27 +81,33 @@ router.put('/assignTask/:user_id/:team_id', verifyToken, verifyAdmin, async (req
         let [result] = await db.query(`insert into tasks (title,description,assigned_to,assigned_by,team_id,deadline) values (?,?,?,?,?,?)`, [title, description, user_id, admin_id, team_id, taskDeadline]);
         if (result.affectedRows === 0) return res.status(400).json({ Message: `Task not Assigned` });
         let [userDetails] = await db.query(`select email,user_name from users where user_id=?`, [user_id]);
-        const mailDeatails = {
-            from: "ashish@taskifyPro.dev",
-            to: userDetails[0].email,
-            subject: `New Task Assigned ${title}`,
-            html: `
-               <h3> Hi,${userDetails[0].user_name},</h3>
-               <p> You've been assigned a new Task <strong>${title}</strong></p>
-               <p> Task Decription: <strong>${description}</strong></p>
-               <p> Deadline: ${taskDeadline}</p>
-               <p> --> TaskifyPro <-- </p>
-            `
-        }
-        transporter.sendMail(mailDeatails, (err, info) => {
-            if (err) console.log(`Error:${err.message}`)
-            else {
-                console.log(`Mail Sent: ${info.response}`)
-            }
+        await emailQueue.add({
+            to:userDetails[0].email,
+            subject:description,
+            taskTitle:title,
+            deadline:taskDeadline
         })
+        // const mailDeatails = {
+        //     from: "ashish@taskifyPro.dev",
+        //     to: userDetails[0].email,
+        //     subject: `New Task Assigned ${title}`,
+        //     html: `
+        //        <h3> Hi,${userDetails[0].user_name},</h3>
+        //        <p> You've been assigned a new Task <strong>${title}</strong></p>
+        //        <p> Task Decription: <strong>${description}</strong></p>
+        //        <p> Deadline: ${taskDeadline}</p>
+        //        <p> --> TaskifyPro <-- </p>
+        //     `
+        // }
+        // transporter.sendMail(mailDeatails, (err, info) => {
+        //     if (err) console.log(`Error:${err.message}`)
+        //     else {
+        //         console.log(`Mail Sent: ${info.response}`)
+        //     }
+        // })
         res.status(200).json({
             Message: `Task ${title} assigned to User with user_id ${user_id}`,
-            // task_id: result.insertId
+             task_id: result.insertId
         });
     }
     catch (err) {

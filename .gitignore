@@ -4,3 +4,7 @@ jspm_packages/
 
 # Environment variables (SENSITIVE DATA)
 .env
+
+# Ignore all pdfs and txt files in the uploads folder
+uploads/*.pdf
+uploads/*.txt

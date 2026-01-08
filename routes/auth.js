@@ -3,8 +3,9 @@ import db from './db.js'
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+dotenv.config({path:'../.env'});
+import { AppError } from './errorClass.js';
 const router = express();
-dotenv.config();
 router.post('/login', async (req, res) => {
     try {
         let { email, password } = req.body;
@@ -19,13 +20,15 @@ router.post('/login', async (req, res) => {
         res.status(200).json({ Message: `Welcome Back ${user[0].user_name}`, token })
     }
     catch (err) {
+        console.log(`Login error`,err)
         res.status(500).json({ Message: `DataBase Error`, Details: err.message });
     }
 })
 
-router.post('/sign-up', async (req, res) => {
+router.post('/sign-up', async (req, res,next) => {
     try {
         let { name, email, password, confirmPassword} = req.body;
+        if(!name||name.trim()==='') return next(new AppError(`Username is required`,400))
         if (password !== confirmPassword) return res.status(401).json({ Message: `Passwords Dont Match` });
         else if (email === '') return res.status(401).json({ Message: `Email required cant be empty` });
         let hashedPassword = await bcrypt.hash(password, 10);
@@ -33,7 +36,7 @@ router.post('/sign-up', async (req, res) => {
         res.status(200).json({ Message: `Sign-up Successfull` })
     }
     catch (err) {
-        res.status(500).json({ Message: `DataBase Error`, Details: err.message });
+        next(err)
     }
 })
 

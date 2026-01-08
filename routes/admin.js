@@ -5,6 +5,10 @@ import db from './db.js';
 import nodemailer from 'nodemailer';
 import transporter from './mailer.js';
 import emailQueue from './emailQueue.js';
+import { AppError } from './errorClass.js';
+import {PDFDocument, StandardFonts, rgb} from 'pdf-lib';
+import fs from 'fs'
+
 const router = express.Router();
 
 
@@ -112,6 +116,40 @@ router.put('/assignTask/:user_id/:team_id', verifyToken, verifyAdmin, async (req
     }
     catch (err) {
         res.status(500).json({ Message: `DataBase Error`, Details: err.message });
+    }
+})
+
+router.get('/get-UserStats/:teamMemberId/:teamId',verifyToken,verifyAdmin,async(req,res,next)=>{
+    try{
+          let admin_id = req.user.id;
+          let {teamMemberId,teamId} = req.params; 
+          let [userData] = await db.query(`select * from tasks where assigned_to=? and team_id=?`,[teamMemberId,teamId]);
+          if(!userData.length) return res.status(404).json({Message:`No Tasks Found For user`});
+          const pdf_doc = await PDFDocument.create()
+          const addPage = pdf_doc.addPage([2480, 3508]);
+          const font = await pdf_doc.embedFont(StandardFonts.Helvetica);
+          let y = 3400;
+          userData.forEach((data)=>{
+            addPage.drawText(`Title: ${data.title}`,{x:50,y:y-60,size:24,font,color: rgb(0.95, 0.1, 0.1)})
+            addPage.drawText(`Description: ${data.description}`,{x:50,y:y-90,size:24,font})
+            addPage.drawText(`Status: ${data.status}`,{x:50,y:y-120,size:24,font})
+            addPage.drawText(`Deadline:${data.deadline}`,{x:50,y:y-150,size:24,font})
+            y-=120;
+          })
+
+          const pdfBites = await pdf_doc.save();
+          fs.writeFileSync('userstats.pdf',pdfBites)
+          let totalTasksAssigned = userData.length;
+          let pendingTaskscount=0
+          userData.forEach(data=>{if(data.status==='Pending')pendingTaskscount++})
+          res.status(200).json({Message:`User Tasks status stats`,
+            taskCompleted:totalTasksAssigned-pendingTaskscount,
+            pendingTasks:`User still has ${pendingTaskscount} Tasks Left`,
+          })
+    }
+    catch(err)
+    {
+        next(err)
     }
 })
 export default router;

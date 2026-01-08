@@ -32,7 +32,6 @@ router.get('/teamMemberWithTasks/:team_id',verifyToken,verifyAdmin,async(req,res
        if(!findTeam.length) return res.status(400).json({Message:`NO Team Found with ${team_id} Team_id`});
        let [userData] = await db.query(`select u.user_id as user_id ,u.user_name as userName,t.task_id as task_id,t.title as title,t.status as status from users as u join tasks as t on u.user_id = t.assigned_to where t.team_id=?`,[team_id]);
        if(!userData.length) return res.status(400).json({Message:`Users Tasks not Assigned`});
-      //  console.log(userData)
        let userTasksMap = new Map();
        userData.forEach((data)=>{
          if(!userTasksMap.has(data.user_id))
